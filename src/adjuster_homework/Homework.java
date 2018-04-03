@@ -61,7 +61,7 @@ public class Homework {
 				+ "ORDER BY result.id";
 
 		/* Problem 3: Output the results from Problem 2 in a CSV file. */
-		Homework.writeCSV(problem2Query);
+		Homework.writeToCSV(problem2Query);
 	}
 
 	public static JSONArray fetchJSON(String url) 
@@ -90,6 +90,8 @@ public class Homework {
 			
 			JSONParser parser = new JSONParser();
 			arr = (JSONArray) parser.parse(result); 
+			
+			if(DEBUG) System.out.println(url + " yielded " + arr.size() + " results.");
 
 			conn.disconnect();
 		} catch (Exception e) {
@@ -109,9 +111,12 @@ public class Homework {
 			conn = DriverManager.getConnection(sqlurl, username, password);
 
 			Statement stmt = conn.createStatement();
+			
+			// Clear existing campaign/creative data
 			stmt.executeUpdate("DELETE FROM CAMPAIGNS");
 			stmt.executeUpdate("DELETE FROM CREATIVES");
 			
+			// Insert into campaign table
 			for (int i = 0; i < campaignSize; i++)
 			{
 				JSONObject curr = (JSONObject)campaigns.get(i);
@@ -128,6 +133,9 @@ public class Homework {
 				stmt.executeUpdate(sqlUpdate);
 			}
 			
+			if(DEBUG) System.out.println("Inserted " + campaignSize + " rows into CAMPAIGNS");
+			
+			// Insert into creative table
 			for (int i = 0; i < creativeSize; i++)
 			{
 				JSONObject curr = (JSONObject)creatives.get(i);
@@ -144,6 +152,8 @@ public class Homework {
 				stmt.executeUpdate(sqlUpdate);
 			}
 			
+			if(DEBUG) System.out.println("Inserted " + creativeSize + " rows into CREATIVES");
+			
 			conn.close();
 			
 		} catch (Exception e) {
@@ -151,10 +161,11 @@ public class Homework {
 		}
 	}
 
-	public static void writeCSV(String query)
+	public static void writeToCSV(String query)
 	{
 		Connection conn = null;
 		try {
+			int lines = 0;
 			Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
 			conn = DriverManager.getConnection(sqlurl, username, password);
 
@@ -165,13 +176,16 @@ public class Homework {
 			BufferedWriter out = new BufferedWriter(fstream);
 
 			while(rset.next()) {
+				lines++;
 				out.write(Integer.toString(rset.getInt("id")) 	  + ", ");
 				out.write(Integer.toString(rset.getInt("clicks")) + ", ");
 				out.write(Integer.toString(rset.getInt("views"))  + ", ");
 				out.write(Integer.toString(rset.getInt("cpm") * rset.getInt("views") / 1000 ));
 				out.newLine();
 			}
-			if (DEBUG) System.out.println("Finished writing into " + file);
+			if (DEBUG) { 
+				System.out.println("Finished writing " + lines + " lines into " + file);
+			}
 			
 			out.close();
 			conn.close();
